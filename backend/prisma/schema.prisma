@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(PUBLIC)
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Branch {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  slug        String       @unique
+  region      String
+  city        String
+  state       String
+  established Int
+  description String
+  imageUrl    String?
+  collections Collection[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("branches")
+}
+
+model Collection {
+  id           String             @id @default(uuid())
+  branchId     String
+  branch       Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  category     CollectionCategory
+  startYear    Int?
+  endYear      Int?
+  thumbnailUrl String?
+  items        ArchiveItem[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([branchId])
+  @@map("collections")
+}
+
+model ArchiveItem {
+  id             String         @id @default(uuid())
+  collectionId   String
+  collection     Collection     @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  mediaType      MediaType
+  fileUrl        String
+  fileSizeBytes  BigInt?
+  mimeType       String?
+  extractedText  String?
+  language       String?        @default("en")
+  tags           String         @default("")
+  metadata       String?
+  indexingStatus IndexingStatus @default(PENDING)
+  qdrantPointIds String         @default("")
+  uploadedBy     String?
+  recordDate     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([collectionId])
+  @@index([indexingStatus])
+  @@map("archive_items")
+}
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  sources   String?
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}
+
+enum UserRole {
+  PUBLIC
+  ARCHIVIST
+}
+
+enum MediaType {
+  DOCUMENT
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
+enum CollectionCategory {
+  COLONIAL_ERA
+  INDEPENDENCE_ERA
+  MILITARY_ERA
+  DEMOCRATIC_ERA
+  CULTURAL_HERITAGE
+  LAND_RECORDS
+  JUDICIAL
+  MILITARY_RECORDS
+  DIPLOMATIC
+  PHOTOGRAPHS
+  ORAL_HISTORY
+}
+
+enum IndexingStatus {
+  PENDING
+  PROCESSING
+  INDEXED
+  FAILED
+}
