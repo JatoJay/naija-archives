@@ -27,7 +27,12 @@ export function LoginPage() {
         : await register(email, password, name || undefined);
 
       setUser(response.user);
-      navigate('/');
+
+      if (response.user.role === 'ARCHIVIST') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(
         err instanceof Error

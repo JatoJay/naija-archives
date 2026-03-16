@@ -6,6 +6,10 @@ node_modules/
 .env.local
 .env.*.local
 
+# GCP Credentials
+gcp-credentials.json
+*-credentials.json
+
 # Database
 *.db
 *.db-journal

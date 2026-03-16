@@ -1,9 +1,11 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ override: true });
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import { connectDatabase } from './config/database.js';
 import { initializeQdrantCollection } from './config/qdrant.js';
 import { initializeGCSBucket } from './config/gcs.js';
@@ -45,6 +47,8 @@ app.use('/api', limiter);
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/branches', branchRoutes);

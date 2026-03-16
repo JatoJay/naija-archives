@@ -19,35 +19,44 @@ export async function initializeQdrantCollection(): Promise<void> {
   }
   try {
     const collections = await qdrantClient.getCollections();
-    const exists = collections.collections.some((c) => c.name === COLLECTION_NAME);
+    const existing = collections.collections.find((c) => c.name === COLLECTION_NAME);
 
-    if (!exists) {
-      await qdrantClient.createCollection(COLLECTION_NAME, {
-        vectors: {
-          size: VECTOR_SIZE,
-          distance: 'Cosine',
-        },
-      });
+    if (existing) {
+      const collectionInfo = await qdrantClient.getCollection(COLLECTION_NAME);
+      const currentSize = (collectionInfo.config?.params?.vectors as { size?: number })?.size;
 
-      await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
-        field_name: 'branchSlug',
-        field_schema: 'keyword',
-      });
-
-      await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
-        field_name: 'collectionId',
-        field_schema: 'keyword',
-      });
-
-      await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
-        field_name: 'mediaType',
-        field_schema: 'keyword',
-      });
-
-      console.log(`✅ Qdrant collection '${COLLECTION_NAME}' created`);
-    } else {
-      console.log(`✅ Qdrant collection '${COLLECTION_NAME}' already exists`);
+      if (currentSize && currentSize !== VECTOR_SIZE) {
+        console.log(`⚠️ Qdrant collection has wrong vector size (${currentSize} vs ${VECTOR_SIZE}), recreating...`);
+        await qdrantClient.deleteCollection(COLLECTION_NAME);
+      } else {
+        console.log(`✅ Qdrant collection '${COLLECTION_NAME}' already exists`);
+        return;
+      }
     }
+
+    await qdrantClient.createCollection(COLLECTION_NAME, {
+      vectors: {
+        size: VECTOR_SIZE,
+        distance: 'Cosine',
+      },
+    });
+
+    await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
+      field_name: 'branchSlug',
+      field_schema: 'keyword',
+    });
+
+    await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
+      field_name: 'collectionId',
+      field_schema: 'keyword',
+    });
+
+    await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
+      field_name: 'mediaType',
+      field_schema: 'keyword',
+    });
+
+    console.log(`✅ Qdrant collection '${COLLECTION_NAME}' created with ${VECTOR_SIZE}-dim vectors`);
   } catch (error) {
     console.error('❌ Failed to initialize Qdrant collection:', error);
     throw error;

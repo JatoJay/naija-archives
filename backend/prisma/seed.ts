@@ -186,7 +186,7 @@ async function main() {
           fileUrl: 'https://storage.googleapis.com/nigeria-archives-media/sample.pdf',
           extractedText: `This document contains historical records related to ${collectionData.title}. The records span from ${collectionData.startYear} to ${collectionData.endYear}. These materials are preserved for research and educational purposes. Nigeria's rich history deserves careful preservation and study.`,
           language: 'en',
-          tags: ['sample', 'historical', collection.category.toLowerCase().replace('_', '-')],
+          tags: `sample,historical,${collection.category.toLowerCase().replace('_', '-')}`,
           indexingStatus: IndexingStatus.INDEXED,
         },
         {
@@ -197,7 +197,7 @@ async function main() {
           fileUrl: 'https://storage.googleapis.com/nigeria-archives-media/sample.jpg',
           extractedText: '',
           language: 'en',
-          tags: ['photograph', 'historical'],
+          tags: 'photograph,historical',
           indexingStatus: IndexingStatus.INDEXED,
         },
       ];

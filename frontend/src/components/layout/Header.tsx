@@ -1,10 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Menu, Search, Upload, MessageSquare, User, LogOut, Settings } from 'lucide-react';
 import { useUIStore } from '@/store';
 import { isAuthenticated, logout } from '@/services/auth';
 
 export function Header() {
   const { toggleSidebar, toggleChat, toggleUploadModal, user } = useUIStore();
+  const location = useLocation();
+  const isAdminArea = location.pathname.startsWith('/admin');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -75,7 +77,7 @@ export function Header() {
             </>
           )}
 
-          {isAuthenticated() && (
+          {isAuthenticated() && isAdminArea && (
             <div className="flex items-center gap-2">
               <Link
                 to="/profile"

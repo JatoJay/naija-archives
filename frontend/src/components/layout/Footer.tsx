@@ -78,11 +78,6 @@ export function Footer() {
           <p className="text-sm text-gray-500">
             &copy; {new Date().getFullYear()} National Archives of Nigeria. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">
-              Powered by Google Cloud
-            </span>
-          </div>
         </div>
       </div>
     </footer>

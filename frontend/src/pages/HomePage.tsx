@@ -12,8 +12,15 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col">
-      <section className="relative bg-gradient-to-br from-green-800 via-green-700 to-green-900 text-white">
-        <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10" />
+      <section className="relative bg-gradient-to-br from-green-800 via-green-700 to-green-900 text-white overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect x='5' y='5' width='40' height='55' fill='none' stroke='white' stroke-width='2'/%3E%3Cline x1='10' y1='15' x2='40' y2='15' stroke='white' stroke-width='1'/%3E%3Cline x1='10' y1='25' x2='35' y2='25' stroke='white'/%3E%3Cline x1='10' y1='32' x2='40' y2='32' stroke='white'/%3E%3Cline x1='10' y1='39' x2='30' y2='39' stroke='white'/%3E%3Ccircle cx='25' cy='52' r='5' fill='none' stroke='white'/%3E%3Crect x='55' y='20' width='40' height='55' fill='none' stroke='white' stroke-width='2'/%3E%3Crect x='60' y='25' width='30' height='22' fill='none' stroke='white'/%3E%3Cline x1='60' y1='55' x2='90' y2='55' stroke='white'/%3E%3Cline x1='60' y1='62' x2='85' y2='62' stroke='white'/%3E%3Cline x1='60' y1='69' x2='88' y2='69' stroke='white'/%3E%3C/svg%3E")`,
+            backgroundSize: '100px 100px',
+            opacity: 0.07
+          }}
+        />
         <div className="container mx-auto px-4 py-20 md:py-32 relative">
           <div className="max-w-3xl">
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">

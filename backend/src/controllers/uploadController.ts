@@ -7,8 +7,9 @@ import { extractTextFromImage } from '../services/ocrService.js';
 import { MediaType, IndexingStatus } from '@prisma/client';
 import Queue from 'bull';
 
-const indexingQueue = new Queue('indexing', process.env.REDIS_URL || 'redis://localhost:6379');
-const transcriptionQueue = new Queue('transcription', process.env.REDIS_URL || 'redis://localhost:6379');
+const redisUrl = process.env.REDIS_URL || '';
+const indexingQueue = redisUrl ? new Queue('indexing', redisUrl) : null;
+const transcriptionQueue = redisUrl ? new Queue('transcription', redisUrl) : null;
 
 export async function uploadDocuments(
   req: Request,
@@ -61,14 +62,14 @@ export async function uploadDocuments(
           mimeType: file.mimetype,
           extractedText,
           language: language || 'en',
-          tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+          tags: tags || '',
           indexingStatus: extractedText ? IndexingStatus.PENDING : IndexingStatus.FAILED,
           uploadedBy: req.user?.id,
           recordDate: recordDate ? new Date(recordDate) : null,
         },
       });
 
-      if (extractedText) {
+      if (extractedText && indexingQueue) {
         await indexingQueue.add({
           itemId: item.id,
           branchSlug: collection.branch.slug,
@@ -141,7 +142,7 @@ export async function uploadImages(
           fileSizeBytes: BigInt(uploadResult.size),
           mimeType: file.mimetype,
           extractedText,
-          tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+          tags: tags || '',
           metadata: {
             photographer,
             location,
@@ -153,7 +154,7 @@ export async function uploadImages(
         },
       });
 
-      if (extractedText) {
+      if (extractedText && indexingQueue) {
         await indexingQueue.add({
           itemId: item.id,
           branchSlug: collection.branch.slug,
@@ -216,21 +217,23 @@ export async function uploadAudio(
         fileSizeBytes: BigInt(uploadResult.size),
         mimeType: file.mimetype,
         language: language || 'en',
-        tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+        tags: tags || '',
         indexingStatus: IndexingStatus.PENDING,
         uploadedBy: req.user?.id,
         recordDate: recordDate ? new Date(recordDate) : null,
       },
     });
 
-    await transcriptionQueue.add({
-      itemId: item.id,
-      gcsUri: uploadResult.gcsUri,
-      branchSlug: collection.branch.slug,
-      collectionId: collection.id,
-      language: language || 'en-US',
-      mediaType: 'AUDIO',
-    });
+    if (transcriptionQueue) {
+      await transcriptionQueue.add({
+        itemId: item.id,
+        gcsUri: uploadResult.gcsUri,
+        branchSlug: collection.branch.slug,
+        collectionId: collection.id,
+        language: language || 'en-US',
+        mediaType: 'AUDIO',
+      });
+    }
 
     res.status(201).json({
       message: 'Audio uploaded successfully. Transcription in progress.',
@@ -281,21 +284,23 @@ export async function uploadVideo(
         fileSizeBytes: BigInt(uploadResult.size),
         mimeType: file.mimetype,
         language: language || 'en',
-        tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+        tags: tags || '',
         indexingStatus: IndexingStatus.PENDING,
         uploadedBy: req.user?.id,
         recordDate: recordDate ? new Date(recordDate) : null,
       },
     });
 
-    await transcriptionQueue.add({
-      itemId: item.id,
-      gcsUri: uploadResult.gcsUri,
-      branchSlug: collection.branch.slug,
-      collectionId: collection.id,
-      language: language || 'en-US',
-      mediaType: 'VIDEO',
-    });
+    if (transcriptionQueue) {
+      await transcriptionQueue.add({
+        itemId: item.id,
+        gcsUri: uploadResult.gcsUri,
+        branchSlug: collection.branch.slug,
+        collectionId: collection.id,
+        language: language || 'en-US',
+        mediaType: 'VIDEO',
+      });
+    }
 
     res.status(201).json({
       message: 'Video uploaded successfully. Transcription in progress.',

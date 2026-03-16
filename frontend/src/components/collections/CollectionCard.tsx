@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FileText, Calendar, MapPin } from 'lucide-react';
+import { Calendar, MapPin, FileText } from 'lucide-react';
 import type { Collection } from '@/types';
 import { formatCategory } from '@/utils/formatters';
 
@@ -20,17 +20,14 @@ export function CollectionCard({ collection }: CollectionCardProps) {
       className="group block bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden"
     >
       <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-        {collection.thumbnailUrl ? (
-          <img
-            src={collection.thumbnailUrl}
-            alt={collection.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-100 to-amber-200">
-            <FileText className="h-12 w-12 text-amber-600/60" />
-          </div>
-        )}
+        <img
+          src={collection.thumbnailUrl || `https://picsum.photos/seed/${collection.id}/400/300`}
+          alt={collection.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${collection.id}/400/300`;
+          }}
+        />
         <div className="absolute top-2 left-2 px-2 py-1 bg-green-700/90 text-white rounded text-xs font-medium">
           {formatCategory(collection.category)}
         </div>

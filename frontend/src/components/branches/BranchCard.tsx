@@ -2,6 +2,16 @@ import { Link } from 'react-router-dom';
 import { MapPin, FolderOpen, FileText } from 'lucide-react';
 import type { Branch } from '@/types';
 
+const branchImages: Record<string, string> = {
+  ibadan: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=600&h=400&fit=crop',
+  enugu: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&h=400&fit=crop',
+  kaduna: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&h=400&fit=crop',
+};
+
+function getBranchImage(slug: string): string {
+  return branchImages[slug] || `https://picsum.photos/seed/${slug}/600/400`;
+}
+
 interface BranchCardProps {
   branch: Branch;
 }
@@ -13,19 +23,14 @@ export function BranchCard({ branch }: BranchCardProps) {
       className="group block bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden"
     >
       <div className="aspect-video bg-gray-100 relative overflow-hidden">
-        {branch.imageUrl ? (
-          <img
-            src={branch.imageUrl}
-            alt={branch.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-600 to-green-800">
-            <span className="text-4xl font-display font-bold text-white/80">
-              {branch.name.charAt(0)}
-            </span>
-          </div>
-        )}
+        <img
+          src={branch.imageUrl || getBranchImage(branch.slug)}
+          alt={branch.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = getBranchImage(branch.slug);
+          }}
+        />
         <div className="absolute top-2 right-2 px-2 py-1 bg-white/90 rounded text-xs font-medium text-gray-700">
           {branch.region}
         </div>

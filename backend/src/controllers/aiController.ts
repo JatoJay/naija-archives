@@ -41,7 +41,7 @@ export async function chat(
         sessionId: session.id,
         role: 'assistant',
         content: response.answer,
-        sources: response.sources,
+        sources: JSON.stringify(response.sources),
       },
     });
 
