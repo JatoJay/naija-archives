@@ -253,7 +253,12 @@ export async function getRecentItems(
       },
     });
 
-    res.json(items);
+    res.json(
+      items.map((item) => ({
+        ...item,
+        tags: item.tags ? item.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      }))
+    );
   } catch (error) {
     next(error);
   }
@@ -289,7 +294,10 @@ export async function getCollectionItems(
     ]);
 
     res.json({
-      data: items,
+      data: items.map((item) => ({
+        ...item,
+        tags: item.tags ? item.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      })),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -328,7 +336,10 @@ export async function getItemById(
       throw new AppError('Item not found', 404);
     }
 
-    res.json(item);
+    res.json({
+      ...item,
+      tags: item.tags ? item.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+    });
   } catch (error) {
     next(error);
   }
@@ -398,7 +409,10 @@ export async function searchItems(
     ]);
 
     res.json({
-      data: items,
+      data: items.map((item) => ({
+        ...item,
+        tags: item.tags ? item.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      })),
       pagination: {
         page: pageNum,
         limit: limitNum,

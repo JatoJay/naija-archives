@@ -1,12 +1,3 @@
-import { TranslationServiceClient } from '@google-cloud/translate';
-
-const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-const location = 'global';
-
-export const translationClient = new TranslationServiceClient();
-
-export const parentPath = `projects/${projectId}/locations/${location}`;
-
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', native: 'English' },
   { code: 'yo', name: 'Yoruba', native: 'Yorùbá' },

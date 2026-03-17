@@ -1,24 +1,86 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, Calendar, Tag, FileText, Image, Music, Video, Globe } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Download, Calendar, Tag, FileText, Image, Music, Video, Globe, Languages, Loader2 } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import ReactPlayer from 'react-player';
 import api from '@/services/api';
 import { formatDate, formatFileSize, formatMediaType } from '@/utils/formatters';
 import type { ArchiveItem } from '@/types';
+
+const NIGERIAN_LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English' },
+  { code: 'yo', name: 'Yoruba', native: 'Yorùbá' },
+  { code: 'ig', name: 'Igbo', native: 'Igbo' },
+  { code: 'ha', name: 'Hausa', native: 'Hausa' },
+];
 
 async function getItemById(id: string): Promise<ArchiveItem> {
   const response = await api.get<ArchiveItem>(`/collections/items/${id}`);
   return response.data;
 }
 
+async function translateText(text: string, targetLanguage: string): Promise<{ translated: string }> {
+  const response = await api.post<{ translated: string }>('/translate', {
+    text,
+    targetLanguage,
+    sourceLanguage: 'en',
+  });
+  return response.data;
+}
+
 export function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [translatedDescription, setTranslatedDescription] = useState<string | null>(null);
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['item', id],
     queryFn: () => getItemById(id!),
     enabled: !!id,
   });
+
+  const translateMutation = useMutation({
+    mutationFn: async ({ text, targetLanguage }: { text: string; targetLanguage: string }) => {
+      return translateText(text, targetLanguage);
+    },
+  });
+
+  const handleLanguageChange = async (langCode: string) => {
+    setSelectedLanguage(langCode);
+
+    if (langCode === 'en') {
+      setTranslatedText(null);
+      setTranslatedDescription(null);
+      return;
+    }
+
+    if (!item) return;
+
+    if (item.extractedText) {
+      try {
+        const result = await translateMutation.mutateAsync({
+          text: item.extractedText,
+          targetLanguage: langCode,
+        });
+        setTranslatedText(result.translated);
+      } catch {
+        setTranslatedText(null);
+      }
+    }
+
+    if (item.description) {
+      try {
+        const result = await translateMutation.mutateAsync({
+          text: item.description,
+          targetLanguage: langCode,
+        });
+        setTranslatedDescription(result.translated);
+      } catch {
+        setTranslatedDescription(null);
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -49,6 +111,9 @@ export function ItemDetailPage() {
     : item.mediaType === 'IMAGE' ? Image
     : item.mediaType === 'AUDIO' ? Music
     : Video;
+
+  const displayText = selectedLanguage === 'en' ? item.extractedText : translatedText;
+  const displayDescription = selectedLanguage === 'en' ? item.description : (translatedDescription || item.description);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -109,10 +174,51 @@ export function ItemDetailPage() {
 
           {item.extractedText && (
             <div className="mt-6 bg-white rounded-lg border p-6">
-              <h2 className="font-semibold text-gray-900 mb-3">Extracted Text</h2>
-              <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">
-                {item.extractedText}
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Languages className="h-5 w-5" />
+                  Document Text
+                </h2>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="language-select" className="text-sm text-gray-500">
+                    Read in:
+                  </label>
+                  <select
+                    id="language-select"
+                    value={selectedLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    disabled={translateMutation.isPending}
+                    className="px-3 py-1.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  >
+                    {NIGERIAN_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.native}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {translateMutation.isPending ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                  <span className="ml-2 text-gray-500">Translating...</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedLanguage !== 'en' && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                      <Globe className="h-4 w-4" />
+                      <span>
+                        Translated to {NIGERIAN_LANGUAGES.find(l => l.code === selectedLanguage)?.name}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">
+                    {displayText || item.extractedText}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -135,8 +241,8 @@ export function ItemDetailPage() {
 
             <h1 className="font-display text-xl font-bold text-gray-900">{item.title}</h1>
 
-            {item.description && (
-              <p className="text-gray-600 mt-3 text-sm">{item.description}</p>
+            {displayDescription && (
+              <p className="text-gray-600 mt-3 text-sm">{displayDescription}</p>
             )}
 
             {item.fileUrl && (

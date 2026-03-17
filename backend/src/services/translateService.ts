@@ -1,17 +1,20 @@
-import { translationClient, parentPath } from '../config/translate.js';
-import Redis from 'ioredis';
+import { SUPPORTED_LANGUAGES } from '../config/translate.js';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const CACHE_TTL = 86400;
+const TRANSLATE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY;
+const TRANSLATE_API_URL = 'https://translation.googleapis.com/language/translate/v2';
 
 interface TranslationResult {
   translated: string | string[];
   detectedSourceLanguage?: string;
 }
 
-function getCacheKey(text: string, targetLanguage: string): string {
-  const hash = Buffer.from(text).toString('base64').substring(0, 32);
-  return `translate:${targetLanguage}:${hash}`;
+interface GoogleTranslateResponse {
+  data: {
+    translations: Array<{
+      translatedText: string;
+      detectedSourceLanguage?: string;
+    }>;
+  };
 }
 
 export async function translateText(
@@ -19,34 +22,55 @@ export async function translateText(
   targetLanguage: string,
   sourceLanguage?: string
 ): Promise<TranslationResult> {
+  if (!TRANSLATE_API_KEY) {
+    console.warn('GOOGLE_TRANSLATE_API_KEY not set, translation disabled');
+    return {
+      translated: text,
+      detectedSourceLanguage: sourceLanguage,
+    };
+  }
+
   const texts = Array.isArray(text) ? text : [text];
   const translatedTexts: string[] = [];
   let detectedSourceLanguage: string | undefined;
 
   for (const t of texts) {
-    const cacheKey = getCacheKey(t, targetLanguage);
-    const cached = await redis.get(cacheKey);
+    try {
+      const params = new URLSearchParams({
+        key: TRANSLATE_API_KEY,
+        q: t,
+        target: targetLanguage,
+        format: 'text',
+      });
 
-    if (cached) {
-      translatedTexts.push(cached);
-      continue;
+      if (sourceLanguage) {
+        params.append('source', sourceLanguage);
+      }
+
+      const response = await fetch(`${TRANSLATE_API_URL}?${params.toString()}`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Translation API error:', errorData);
+        translatedTexts.push(t);
+        continue;
+      }
+
+      const data: GoogleTranslateResponse = await response.json();
+      const translation = data.data.translations[0];
+
+      if (translation) {
+        translatedTexts.push(translation.translatedText);
+        detectedSourceLanguage = detectedSourceLanguage || translation.detectedSourceLanguage;
+      } else {
+        translatedTexts.push(t);
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      translatedTexts.push(t);
     }
-
-    const [response] = await translationClient.translateText({
-      parent: parentPath,
-      contents: [t],
-      mimeType: 'text/plain',
-      sourceLanguageCode: sourceLanguage,
-      targetLanguageCode: targetLanguage,
-    });
-
-    const translation = response.translations?.[0];
-    const translatedText = translation?.translatedText || t;
-    detectedSourceLanguage =
-      detectedSourceLanguage || translation?.detectedLanguageCode || undefined;
-
-    await redis.setex(cacheKey, CACHE_TTL, translatedText);
-    translatedTexts.push(translatedText);
   }
 
   return {
@@ -56,18 +80,32 @@ export async function translateText(
 }
 
 export async function detectLanguage(text: string): Promise<string> {
-  const [response] = await translationClient.detectLanguage({
-    parent: parentPath,
-    content: text,
-  });
+  if (!TRANSLATE_API_KEY) {
+    return 'en';
+  }
 
-  const detection = response.languages?.[0];
-  return detection?.languageCode || 'en';
+  try {
+    const params = new URLSearchParams({
+      key: TRANSLATE_API_KEY,
+      q: text,
+    });
+
+    const response = await fetch(
+      `https://translation.googleapis.com/language/translate/v2/detect?${params.toString()}`,
+      { method: 'POST' }
+    );
+
+    if (!response.ok) {
+      return 'en';
+    }
+
+    const data = await response.json();
+    return data.data.detections?.[0]?.[0]?.language || 'en';
+  } catch {
+    return 'en';
+  }
 }
 
-export async function clearTranslationCache(): Promise<void> {
-  const keys = await redis.keys('translate:*');
-  if (keys.length > 0) {
-    await redis.del(...keys);
-  }
+export function getSupportedLanguages() {
+  return SUPPORTED_LANGUAGES;
 }
